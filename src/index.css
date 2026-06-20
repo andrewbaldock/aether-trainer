@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+/* ---- Theme: industrial machine, dark workshop ---- */
+@theme {
+  --color-shop-950: #07090d;
+  --color-shop-900: #0b0e14;
+  --color-shop-850: #0f131c;
+  --color-shop-800: #141925;
+  --color-shop-700: #1d2433;
+  --color-shop-600: #2b3346;
+  --color-brass-400: #d8a657;
+  --color-brass-500: #c08a3e;
+  --color-brass-600: #9a6c2e;
+  --color-steam-300: #7fd4e0;
+  --color-glow-400: #5fe3a1;
+  --color-glow-500: #2fcf86;
+  --color-rust-500: #b5562f;
+  --color-gold-400: #f2c94c;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--color-shop-950);
+  color: #e6eaf2;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reusable pulse for "live"/"humming" parts */
+@keyframes hum {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.78;
+  }
+}
+.animate-hum {
+  animation: hum 2.2s ease-in-out infinite;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+/* React Flow surface tuning */
+.react-flow__attribution {
+  display: none;
+}
