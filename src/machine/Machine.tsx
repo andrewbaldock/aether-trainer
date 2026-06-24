@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -9,15 +9,31 @@ import {
   type Edge,
   type NodeMouseHandler,
 } from "@xyflow/react";
-import { buildNodes, buildEdges, type MachineNode } from "./layout";
+import {
+  buildNodes,
+  buildEdges,
+  type MachineNode,
+  type InnerMode,
+} from "./layout";
 import { ZoneNode } from "./ZoneNode";
 import { PartNode } from "./PartNode";
+import { MechanismNode } from "./MechanismNode";
+import { BandNode } from "./BandNode";
+import { MECH_KIND_META } from "./mechKinds";
 import { STATION_BY_ID, type StationId } from "../data/stations";
 import { useProgress } from "../game/useProgress";
 
-const nodeTypes = { zone: ZoneNode, part: PartNode };
+const nodeTypes = {
+  zone: ZoneNode,
+  part: PartNode,
+  mech: MechanismNode,
+  band: BandNode,
+};
 
 export type MachineProps = {
+  /** What renders inside each zone: flashcards ("parts", Recall) or internal
+   *  plumbing ("mechanics", Diagnose/Explain). Defaults to "parts". */
+  inner?: InnerMode;
   /** Click a part (card) — used by Recall to open that card. */
   onPartClick?: (cardId: string) => void;
   /** Click a zone header — used by Recall (open station) / Diagnose (answer). */
@@ -28,19 +44,52 @@ export type MachineProps = {
   animateFlow?: boolean;
   /** Dim everything except these stations (focus mode). */
   focus?: StationId[];
+  /** Watch "spotlight": light these mechanism boxes (node ids), dim the rest. */
+  litMechIds?: string[];
+  /** Watch spotlight: zones to light. */
+  litStationIds?: StationId[];
+  /** Watch spotlight: pipes to light, as [from, to] station pairs. */
+  litEdges?: [StationId, StationId][];
+  /** Watch: faintly preview the adjacent steps' boxes (~30% brightness). */
+  ghostMechIds?: string[];
+  ghostStationIds?: StationId[];
+  ghostEdges?: [StationId, StationId][];
   fitViewKey?: string;
 };
 
 export function Machine({
+  inner = "parts",
   onPartClick,
   onZoneClick,
   highlight,
   animateFlow,
   focus,
+  litMechIds,
+  litStationIds,
+  litEdges,
+  ghostMechIds,
+  ghostStationIds,
+  ghostEdges,
 }: MachineProps) {
-  const { fluency } = useProgress();
+  const { fluency, stationMastered, srs } = useProgress();
 
-  const baseNodes = useMemo<MachineNode[]>(() => buildNodes(), []);
+  // Which mechanism boxes have their details panel open (by node id).
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const toggleExpanded = useCallback((id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const baseNodes = useMemo<MachineNode[]>(
+    () => buildNodes(inner, expanded),
+    [inner, expanded],
+  );
   const baseEdges = useMemo<Edge[]>(() => buildEdges(), []);
 
   const highlightSet = useMemo(
@@ -49,19 +98,95 @@ export function Machine({
   );
   const focusSet = useMemo(() => new Set(focus ?? []), [focus]);
 
+  // Watch "spotlight" — when active, dim everything not explicitly lit.
+  const litMech = useMemo(() => new Set(litMechIds ?? []), [litMechIds]);
+  const litStation = useMemo(() => new Set(litStationIds ?? []), [litStationIds]);
+  const litEdge = useMemo(
+    () => new Set((litEdges ?? []).map(([a, b]) => `${a}->${b}`)),
+    [litEdges],
+  );
+  const ghostMech = useMemo(() => new Set(ghostMechIds ?? []), [ghostMechIds]);
+  const ghostStation = useMemo(
+    () => new Set(ghostStationIds ?? []),
+    [ghostStationIds],
+  );
+  const ghostEdge = useMemo(
+    () => new Set((ghostEdges ?? []).map(([a, b]) => `${a}->${b}`)),
+    [ghostEdges],
+  );
+  const spotlight = litMech.size > 0 || litStation.size > 0;
+
   const nodes = useMemo<Node[]>(() => {
     return baseNodes.map((n) => {
-      if (n.data.kind !== "zone") {
-        // Part nodes inherit dimming via their zone; just pass through.
+      // Background bands are static decoration — never dimmed or highlighted.
+      if (n.data.kind === "band") return n;
+      if (n.data.kind === "part") {
+        // Part nodes inherit dimming via their zone; fold in their Leitner box.
         const sid = n.parentId?.replace("zone:", "") as StationId | undefined;
         const dim = focusSet.size > 0 && sid && !focusSet.has(sid);
-        return { ...n, style: { ...n.style, opacity: dim ? 0.25 : 1 } };
+        return {
+          ...n,
+          data: { ...n.data, box: srs[n.data.card.id]?.box ?? 0 },
+          style: { ...n.style, opacity: dim ? 0.25 : 1 },
+        };
+      }
+      if (n.data.kind === "mech") {
+        const data = { ...n.data, onToggle: () => toggleExpanded(n.id) };
+        if (spotlight) {
+          // Watch: current step glows; adjacent steps preview at ~30%.
+          const color = MECH_KIND_META[n.data.mech.kind].color;
+          const lit = litMech.has(n.id);
+          const ghost = !lit && ghostMech.has(n.id);
+          const on = lit || ghost;
+          return {
+            ...n,
+            data,
+            style: {
+              ...n.style,
+              opacity: lit ? 1 : ghost ? 0.3 : 0.06,
+              outline: on ? `2px solid ${color}` : undefined,
+              outlineOffset: on ? "2px" : undefined,
+              borderRadius: 9,
+              boxShadow: on
+                ? `0 0 24px color-mix(in oklab, ${color} 75%, transparent)`
+                : undefined,
+              transition: "opacity 300ms ease, box-shadow 300ms ease",
+            },
+          };
+        }
+        // Mechanism boxes inherit dimming from their parent zone (focus mode).
+        const sid = n.data.stationId;
+        const dim = focusSet.size > 0 && !focusSet.has(sid);
+        return { ...n, data, style: { ...n.style, opacity: dim ? 0.25 : 1 } };
       }
       const sid = n.data.stationId;
+      const zoneData = {
+        ...n.data,
+        fluency: fluency[sid] ?? 0,
+        mastered: stationMastered[sid] ?? 0,
+      };
+      if (spotlight) {
+        const litZone = litStation.has(sid);
+        const ghostZone = !litZone && ghostStation.has(sid);
+        const on = litZone || ghostZone;
+        return {
+          ...n,
+          data: zoneData,
+          style: {
+            ...n.style,
+            opacity: litZone ? 1 : ghostZone ? 0.4 : 0.18,
+            outline: on ? `2px solid ${STATION_BY_ID[sid].color}` : undefined,
+            outlineOffset: on ? "2px" : undefined,
+            borderRadius: 16,
+            transition: "opacity 300ms ease",
+          },
+        };
+      }
       const isHighlighted = highlightSet.has(sid);
       const dim = focusSet.size > 0 && !focusSet.has(sid);
       return {
         ...n,
+        data: zoneData,
         style: {
           ...n.style,
           opacity: dim ? 0.3 : 1,
@@ -73,12 +198,43 @@ export function Machine({
         },
       };
     });
-  }, [baseNodes, highlightSet, focusSet]);
+  }, [
+    baseNodes,
+    highlightSet,
+    focusSet,
+    spotlight,
+    litMech,
+    litStation,
+    ghostMech,
+    ghostStation,
+    fluency,
+    stationMastered,
+    srs,
+    toggleExpanded,
+  ]);
 
   const edges = useMemo<Edge[]>(() => {
     return baseEdges.map((e) => {
+      // Intra-zone mechanics arrows keep their own styling — only restyle pipes.
+      if (!e.id.startsWith("pipe:")) return e;
       const from = e.source.replace("zone:", "") as StationId;
       const to = e.target.replace("zone:", "") as StationId;
+      if (spotlight) {
+        // Watch: light this step's wires; preview adjacent steps' at ~30%.
+        const lit = litEdge.has(`${from}->${to}`) || litEdge.has(`${to}->${from}`);
+        const ghost =
+          !lit && (ghostEdge.has(`${from}->${to}`) || ghostEdge.has(`${to}->${from}`));
+        return {
+          ...e,
+          animated: lit,
+          style: {
+            ...e.style,
+            stroke: lit || ghost ? STATION_BY_ID[to].color : "#161c28",
+            strokeWidth: lit ? 8 : ghost ? 5 : 4,
+            opacity: lit ? 1 : ghost ? 0.3 : 0.5,
+          },
+        };
+      }
       // A pipe "lights" once both ends have some fluency.
       const live = (fluency[from] ?? 0) > 0.02 && (fluency[to] ?? 0) > 0.02;
       const traced =
@@ -97,12 +253,14 @@ export function Machine({
         },
       };
     });
-  }, [baseEdges, fluency, animateFlow, highlightSet]);
+  }, [baseEdges, fluency, animateFlow, highlightSet, spotlight, litEdge, ghostEdge]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>(
     (_evt, node) => {
       const data = (node as MachineNode).data;
+      if (data.kind === "band") return; // decoration — not clickable
       if (data.kind === "part") onPartClick?.(data.card.id);
+      // A zone or mechanism box answers for its station (so Diagnose clicks count).
       else onZoneClick?.(data.stationId);
     },
     [onPartClick, onZoneClick],

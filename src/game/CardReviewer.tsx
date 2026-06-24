@@ -11,13 +11,15 @@ export function CardReviewer({
   cardIds,
   onClose,
   title,
+  startAt = 0,
 }: {
   cardIds: string[];
   onClose: () => void;
   title?: string;
+  startAt?: number;
 }) {
   const { rate, srs } = useProgress();
-  const [i, setI] = useState(0);
+  const [i, setI] = useState(startAt);
   const [flipped, setFlipped] = useState(false);
 
   const cardId = cardIds[i];
@@ -37,6 +39,10 @@ export function CardReviewer({
       } else if (flipped && (e.key === "1" || e.key === "2" || e.key === "3")) {
         const map: Record<string, Rating> = { "1": "missed", "2": "fuzzy", "3": "got" };
         handleRate(map[e.key]);
+      } else if (e.key === "ArrowLeft") {
+        setI((n) => Math.max(0, n - 1));
+      } else if (e.key === "ArrowRight") {
+        setI((n) => Math.min(cardIds.length, n + 1));
       }
     }
     window.addEventListener("keydown", onKey);
@@ -49,15 +55,26 @@ export function CardReviewer({
       <Backdrop onClose={onClose}>
         <div className="w-[min(560px,92vw)] rounded-2xl border border-shop-700 bg-shop-850 p-8 text-center">
           <p className="text-lg font-semibold text-glow-400">Deck complete ✦</p>
-          <p className="mt-2 text-sm text-shop-600">
-            Nothing left in this queue right now.
+          <p className="mt-2 text-sm text-shop-400">
+            You worked through all {cardIds.length} card
+            {cardIds.length === 1 ? "" : "s"} in this deck.
           </p>
-          <button
-            onClick={onClose}
-            className="mt-6 rounded-lg border border-shop-700 px-4 py-2 text-sm hover:border-brass-500"
-          >
-            Back to the machine
-          </button>
+          <div className="mt-6 flex justify-center gap-2">
+            {cardIds.length > 0 && (
+              <button
+                onClick={() => setI(cardIds.length - 1)}
+                className="rounded-lg border border-shop-700 px-4 py-2 text-sm hover:border-brass-500"
+              >
+                ← Previous card
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="rounded-lg border border-shop-700 px-4 py-2 text-sm hover:border-brass-500"
+            >
+              Back to the machine
+            </button>
+          </div>
         </div>
       </Backdrop>
     );
@@ -91,20 +108,37 @@ export function CardReviewer({
               className={`rounded-md px-2 py-0.5 text-[11px] font-semibold ${
                 card.kind === "gotcha"
                   ? "bg-gold-400/15 text-gold-400"
-                  : "bg-shop-800 text-shop-600"
+                  : "bg-shop-800 text-shop-400"
               }`}
             >
               {KIND_LABEL[card.kind]}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-shop-600">
-              {title ? `${title} · ` : ""}
-              {i + 1}/{cardIds.length}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setI((n) => Math.max(0, n - 1))}
+                disabled={i === 0}
+                className="text-shop-400 hover:text-white disabled:opacity-30 disabled:hover:text-shop-400"
+                aria-label="Previous card"
+              >
+                ‹
+              </button>
+              <span className="text-[11px] text-shop-400">
+                {title ? `${title} · ` : ""}
+                {i + 1}/{cardIds.length}
+              </span>
+              <button
+                onClick={() => setI((n) => Math.min(cardIds.length, n + 1))}
+                className="text-shop-400 hover:text-white"
+                aria-label="Next card"
+              >
+                ›
+              </button>
+            </div>
             <button
               onClick={onClose}
-              className="text-shop-600 hover:text-white"
+              className="text-shop-400 hover:text-white"
               aria-label="Close"
             >
               ✕
@@ -119,13 +153,13 @@ export function CardReviewer({
         >
           {!flipped ? (
             <>
-              <p className="text-[11px] uppercase tracking-widest text-shop-600">
+              <p className="text-[11px] uppercase tracking-widest text-shop-400">
                 Prompt
               </p>
               <p className="mt-3 text-xl font-semibold leading-snug text-white">
                 {card.front}
               </p>
-              <p className="mt-6 text-xs text-shop-600">
+              <p className="mt-6 text-xs text-shop-400">
                 Click or press Space to reveal
               </p>
             </>
@@ -198,7 +232,7 @@ function RateBtn({
 function MasteryPips({ box }: { box: number }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[11px] text-shop-600">Mastery</span>
+      <span className="text-[11px] text-shop-400">Mastery</span>
       <div className="flex gap-1">
         {Array.from({ length: MAX_BOX }).map((_, i) => (
           <span

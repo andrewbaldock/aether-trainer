@@ -43,6 +43,61 @@ describe("buildNodes", () => {
   });
 });
 
+describe("column layout", () => {
+  const nodes = buildNodes("mechanics");
+  const zonePos = new Map(
+    nodes
+      .filter((n) => n.data.kind === "zone")
+      .map((n) => [
+        (n.data as { stationId: string }).stationId,
+        { y: n.position.y, x: n.position.x, h: (n.height ?? 0) as number },
+      ]),
+  );
+
+  it("draws three background bands behind the zones", () => {
+    const bands = nodes.filter((n) => n.data.kind === "band");
+    expect(bands.map((b) => b.id).sort()).toEqual([
+      "band:backend",
+      "band:deploy",
+      "band:frontend",
+    ]);
+    for (const b of bands) expect(b.zIndex ?? 0).toBeLessThan(0);
+  });
+
+  it("packs sections without any overlapping another", () => {
+    const rects = nodes
+      .filter((n) => n.data.kind === "zone")
+      .map((n) => ({
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        w: (n.width ?? 0) as number,
+        h: (n.height ?? 0) as number,
+      }));
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i];
+        const b = rects[j];
+        const overlap =
+          a.x < b.x + b.w &&
+          a.x + a.w > b.x &&
+          a.y < b.y + b.h &&
+          a.y + a.h > b.y;
+        expect(overlap, `${a.id} overlaps ${b.id}`).toBe(false);
+      }
+    }
+  });
+
+  it("places contract above the columns and deploy below them", () => {
+    const contract = zonePos.get("contract")!;
+    const deploy = zonePos.get("deploy")!;
+    const frontendTop = zonePos.get("frontend")!.y;
+    const lastBackend = zonePos.get("persistence")!;
+    expect(contract.y).toBeLessThan(frontendTop);
+    expect(deploy.y).toBeGreaterThanOrEqual(lastBackend.y + lastBackend.h);
+  });
+});
+
 describe("buildEdges", () => {
   it("emits one edge per flow connection, referencing real zone nodes", () => {
     const edges = buildEdges();

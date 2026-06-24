@@ -1,7 +1,6 @@
 import { memo } from "react";
 import type { NodeProps, Node } from "@xyflow/react";
 import type { PartNodeData } from "./layout";
-import { useProgress } from "../game/useProgress";
 import { MAX_BOX } from "../game/srs";
 
 type PartNode = Node<PartNodeData>;
@@ -13,10 +12,8 @@ const KIND_GLYPH: Record<PartNodeData["card"]["kind"], string> = {
 };
 
 function PartNodeImpl({ data }: NodeProps<PartNode>) {
-  const { srs } = useProgress();
   const card = data.card;
-  const state = srs[card.id];
-  const box = state?.box ?? 0;
+  const box = data.box;
   const ratio = box / MAX_BOX;
   const lit = box > 0;
   const isGotcha = card.kind === "gotcha";

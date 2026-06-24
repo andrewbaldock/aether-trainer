@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Machine } from "../machine/Machine";
 import { SYMPTOMS, type Symptom } from "../data/diagnose";
 import { CARD_BY_ID } from "../data/cards";
@@ -6,23 +6,23 @@ import { STATION_BY_ID, type StationId } from "../data/stations";
 
 type Result = { correct: boolean; picked: StationId } | null;
 
-/** Stable shuffle seeded by a counter, so "next" reorders deterministically per round. */
-function order(seed: number): Symptom[] {
+/** A fresh random shuffle (Fisher–Yates) — reshuffled on mount and each round. */
+function shuffle(): Symptom[] {
   const arr = [...SYMPTOMS];
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.abs(Math.sin(seed * 99 + i) * 10000) % (i + 1) | 0;
+    const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
 }
 
 export function Diagnose() {
-  const [seed, setSeed] = useState(1);
+  // Initialised lazily, so the deck is freshly shuffled on every reload/mount.
+  const [deck, setDeck] = useState<Symptom[]>(shuffle);
   const [idx, setIdx] = useState(0);
   const [result, setResult] = useState<Result>(null);
   const [score, setScore] = useState({ right: 0, total: 0 });
 
-  const deck = useMemo(() => order(seed), [seed]);
   const symptom = deck[idx];
 
   function pick(stationId: StationId) {
@@ -35,7 +35,7 @@ export function Diagnose() {
   function next() {
     setResult(null);
     if (idx + 1 >= deck.length) {
-      setSeed((s) => s + 1);
+      setDeck(shuffle()); // new round → reshuffle
       setIdx(0);
     } else {
       setIdx((i) => i + 1);
@@ -50,6 +50,7 @@ export function Diagnose() {
   return (
     <>
       <Machine
+        inner="mechanics"
         onZoneClick={pick}
         highlight={highlight}
         animateFlow={!!result?.correct}
@@ -62,7 +63,7 @@ export function Diagnose() {
             <span className="text-[11px] font-bold uppercase tracking-widest text-rust-500">
               ⚠ Symptom
             </span>
-            <span className="font-mono text-[11px] text-shop-600">
+            <span className="font-mono text-[11px] text-shop-400">
               {score.right}/{score.total} correct
             </span>
           </div>
@@ -70,7 +71,7 @@ export function Diagnose() {
             {symptom.symptom}
           </p>
           {!result ? (
-            <p className="mt-2 text-xs text-shop-600">
+            <p className="mt-2 text-xs text-shop-400">
               Click the <span className="text-shop-100">station</span> on the
               machine that owns the fix.
             </p>

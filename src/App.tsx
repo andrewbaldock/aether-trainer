@@ -5,6 +5,7 @@ import { Hud, type Mode } from "./components/Hud";
 import { Recall } from "./game/Recall";
 import { Diagnose } from "./game/Diagnose";
 import { Explain } from "./game/Explain";
+import { Watch } from "./game/Watch";
 
 export function App() {
   const [mode, setMode] = useState<Mode>("recall");
@@ -26,6 +27,7 @@ export function App() {
             {mode === "recall" && <Recall reviewSignal={reviewSignal} />}
             {mode === "diagnose" && <Diagnose />}
             {mode === "explain" && <Explain />}
+            {mode === "watch" && <Watch />}
           </main>
         </div>
       </ReactFlowProvider>

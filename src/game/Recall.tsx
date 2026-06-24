@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Machine } from "../machine/Machine";
 import { CardReviewer } from "./CardReviewer";
-import { CARDS_BY_STATION } from "../data/cards";
+import { CARDS_BY_STATION, CARD_BY_ID } from "../data/cards";
 import { STATION_BY_ID, type StationId } from "../data/stations";
 import { useProgress } from "./useProgress";
 import { dueCards } from "./srs";
 
-type Review = { cardIds: string[]; title: string } | null;
+type Review = { cardIds: string[]; title: string; startAt?: number } | null;
 
 export function Recall({ reviewSignal }: { reviewSignal: number }) {
   const { srs } = useProgress();
@@ -29,8 +29,13 @@ export function Recall({ reviewSignal }: { reviewSignal: number }) {
     setReview({ cardIds: ids, title: STATION_BY_ID[stationId].name });
   }
 
+  // Clicking one part opens its whole station deck, positioned at that card,
+  // so you can still page through the rest instead of dead-ending on one card.
   function openCard(cardId: string) {
-    setReview({ cardIds: [cardId], title: "Single card" });
+    const card = CARD_BY_ID[cardId];
+    const deck = (CARDS_BY_STATION[card.stationId] ?? []).map((c) => c.id);
+    const startAt = Math.max(0, deck.indexOf(cardId));
+    setReview({ cardIds: deck, title: STATION_BY_ID[card.stationId].name, startAt });
   }
 
   return (
@@ -40,7 +45,7 @@ export function Recall({ reviewSignal }: { reviewSignal: number }) {
         onZoneClick={openStation}
         animateFlow
       />
-      <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border border-shop-700 bg-shop-900/90 px-4 py-1.5 text-xs text-shop-600 backdrop-blur">
+      <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border border-shop-700 bg-shop-900/90 px-4 py-1.5 text-xs text-shop-400 backdrop-blur">
         Click a <span className="text-shop-100">part</span> to study it, or a{" "}
         <span className="text-shop-100">zone header</span> to run its whole deck.
         Master parts to light up the machine.
@@ -49,6 +54,7 @@ export function Recall({ reviewSignal }: { reviewSignal: number }) {
         <CardReviewer
           cardIds={review.cardIds}
           title={review.title}
+          startAt={review.startAt}
           onClose={() => setReview(null)}
         />
       )}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { detectStations } from "./Explain";
+import { detectStations } from "./stationAliases";
 
 describe("detectStations", () => {
   it("returns [] for empty / irrelevant text", () => {

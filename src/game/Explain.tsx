@@ -1,42 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Machine } from "../machine/Machine";
 import { EXPLAIN_PROMPTS, type ExplainPrompt } from "../data/explain";
-import { STATIONS, STATION_BY_ID, type StationId } from "../data/stations";
+import { STATION_BY_ID, type StationId } from "../data/stations";
+import { detectStations } from "../data/stationAliases";
 import { aiGrade, type GradeResult } from "../ai/grade";
 import { load, save, STORAGE_KEYS } from "../lib/storage";
-
-// Detect which stations the typed answer "names", so the machine can trace them
-// live. We match station names and a few obvious aliases against the text.
-const ALIASES: Record<StationId, string[]> = {
-  frontend: ["frontend", "provider tree", "app.tsx", "shell", "url"],
-  "chat-pipe": ["usechat", "chat pipe", "sse", "epoch", "stream", "queue"],
-  contract: ["contract", "wire type", "sseevent", "render spec", "@contract"],
-  backend: ["backend", "hono", "route", "endpoint", "etag", "ownership"],
-  planner: ["planner", "haiku", "clarify", "plan", "pre-pass", "prepass"],
-  "agent-loop": ["agent loop", "runagentloop", "wireadapter", "iteration", "loopevent"],
-  providers: ["provider", "model", "claude", "gemini", "deepseek", "mistral", "caching"],
-  tools: ["tool", "render_table", "render", "wikidata", "degenerate"],
-  sse: ["sse", "tool_partial", "done sentinel", "framing", "besteffort"],
-  widgets: ["widget", "registry", "capabilit", "parser", "streamingentries"],
-  bigsail: ["bigsail", "gridstack", "skeleton", "card", "tiles", "loading"],
-  persistence: ["persist", "supabase", "jsonb", "schemaversion", "merge", "widget_data"],
-  deploy: ["deploy", "fly", "vercel", "smoke", "ci", "min_machines"],
-};
-
-export function detectStations(text: string): StationId[] {
-  const lower = text.toLowerCase();
-  // Preserve first-mention order so the trace lights in the order named.
-  const firstIndex = new Map<StationId, number>();
-  for (const s of STATIONS) {
-    let best = Infinity;
-    for (const alias of [s.name.toLowerCase(), ...ALIASES[s.id]]) {
-      const i = lower.indexOf(alias);
-      if (i >= 0 && i < best) best = i;
-    }
-    if (best < Infinity) firstIndex.set(s.id, best);
-  }
-  return [...firstIndex.entries()].sort((a, b) => a[1] - b[1]).map(([id]) => id);
-}
 
 export function Explain() {
   const [prompt, setPrompt] = useState<ExplainPrompt>(() => EXPLAIN_PROMPTS[0]);
@@ -109,7 +77,7 @@ export function Explain() {
 
   return (
     <>
-      <Machine highlight={named} animateFlow focus={graded ? prompt.mustHit : undefined} />
+      <Machine inner="mechanics" highlight={named} animateFlow focus={graded ? prompt.mustHit : undefined} />
 
       {/* Prompt + answer panel */}
       <div className="absolute right-4 top-4 z-10 flex max-h-[calc(100%-2rem)] w-[min(440px,92vw)] flex-col rounded-2xl border border-shop-700 bg-shop-900/95 shadow-2xl backdrop-blur">
@@ -124,7 +92,7 @@ export function Explain() {
             </span>
             <button
               onClick={() => setShowSettings((s) => !s)}
-              className="text-shop-600 hover:text-white"
+              className="text-shop-400 hover:text-white"
               title="Claude API key for AI grading"
             >
               ⚙
@@ -158,7 +126,7 @@ export function Explain() {
               >
                 Save key
               </button>
-              <p className="mt-1.5 text-[10px] text-shop-600">
+              <p className="mt-1.5 text-[10px] text-shop-400">
                 Used only for the optional AI-grade. Self-grade works offline with no key.
               </p>
             </div>
@@ -180,7 +148,7 @@ export function Explain() {
                 rows={7}
                 className="mt-3 w-full resize-none rounded-lg border border-shop-700 bg-shop-850 px-3 py-2 text-[13px] leading-relaxed text-white outline-none focus:border-glow-500"
               />
-              <p className="mt-1.5 text-[11px] text-shop-600">
+              <p className="mt-1.5 text-[11px] text-shop-400">
                 Stations lit: <span className="text-steam-300">{named.length}</span> ·
                 must-hit covered:{" "}
                 <span className="text-glow-400">
@@ -213,7 +181,7 @@ export function Explain() {
 
           {/* prompt switcher */}
           <div className="mt-4 border-t border-shop-700 pt-3">
-            <p className="mb-1.5 text-[10px] uppercase tracking-wide text-shop-600">
+            <p className="mb-1.5 text-[10px] uppercase tracking-wide text-shop-400">
               Pick a prompt
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -271,7 +239,7 @@ function Results({
           {selfScore}%
         </span>
       </div>
-      <p className="mt-1 text-[11px] text-shop-600">
+      <p className="mt-1 text-[11px] text-shop-400">
         Coverage of must-hit stations. (You judge the depth.)
       </p>
 

@@ -1,14 +1,12 @@
 import { memo } from "react";
 import { Handle, Position, type NodeProps, type Node } from "@xyflow/react";
 import type { ZoneNodeData } from "./layout";
-import { useProgress } from "../game/useProgress";
 
 type ZoneNode = Node<ZoneNodeData>;
 
 function ZoneNodeImpl({ data }: NodeProps<ZoneNode>) {
-  const { fluency, stationMastered } = useProgress();
-  const f = fluency[data.stationId] ?? 0;
-  const mastered = stationMastered[data.stationId] ?? 0;
+  const f = data.fluency;
+  const mastered = data.mastered;
   const lit = f > 0.02;
 
   return (
@@ -38,11 +36,11 @@ function ZoneNodeImpl({ data }: NodeProps<ZoneNode>) {
           >
             {data.name}
           </h3>
-          <span className="text-[11px] font-mono text-shop-600">
+          <span className="text-[11px] font-mono text-shop-400">
             {mastered}✦
           </span>
         </div>
-        <p className="mt-0.5 text-[11px] leading-tight text-shop-600">
+        <p className="mt-0.5 text-[11px] leading-tight text-shop-400">
           {data.tagline}
         </p>
         {/* Fluency meter */}
@@ -55,6 +53,35 @@ function ZoneNodeImpl({ data }: NodeProps<ZoneNode>) {
             }}
           />
         </div>
+
+        {/* "What's inside" index — shown in every mode so a station's contents
+            are legible at a glance (key for Diagnose). */}
+        {data.contents.length > 0 && (
+          <div className="mt-2.5">
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-shop-400">
+              Inside ({data.contents.length})
+            </div>
+            <ul className="mt-1 flex flex-wrap items-start gap-1.5">
+              {data.contents.map((c) => (
+                <li key={c.label} className="flex">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] leading-tight text-shop-100"
+                    style={{
+                      borderColor: `color-mix(in oklab, ${c.color} 55%, transparent)`,
+                      background: `color-mix(in oklab, ${c.color} 14%, transparent)`,
+                    }}
+                  >
+                    <span
+                      className="inline-block h-[6px] w-[6px] shrink-0 rounded-full"
+                      style={{ background: c.color }}
+                    />
+                    <span>{c.label}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,12 +2,13 @@ import { useProgress } from "../game/useProgress";
 import { GOTCHA_CARDS } from "../data/cards";
 import { isMastered } from "../game/srs";
 
-export type Mode = "recall" | "diagnose" | "explain";
+export type Mode = "recall" | "diagnose" | "explain" | "watch";
 
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "recall", label: "Recall", hint: "Flashcards + spaced repetition" },
   { id: "diagnose", label: "Diagnose", hint: "Symptom → which station?" },
   { id: "explain", label: "Explain", hint: "Interview simulator" },
+  { id: "watch", label: "Watch", hint: "Guided walk-through of a live turn" },
 ];
 
 export function Hud({
@@ -29,7 +30,7 @@ export function Hud({
         <span className="text-base font-black tracking-tight">
           <span className="text-brass-400">⚙</span> The Aether Machine
         </span>
-        <span className="hidden text-[11px] text-shop-600 sm:inline">
+        <span className="hidden text-[11px] text-shop-400 sm:inline">
           interview trainer
         </span>
       </div>
@@ -70,7 +71,7 @@ export function Hud({
         </div>
         <div className="flex flex-col items-end">
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[11px] uppercase tracking-wide text-shop-600">
+            <span className="text-[11px] uppercase tracking-wide text-shop-400">
               Readiness
             </span>
             <span
@@ -86,7 +87,7 @@ export function Hud({
               style={{ width: `${pct}%`, background: readinessColor(pct) }}
             />
           </div>
-          <span className="mt-0.5 text-[10px] text-shop-600">
+          <span className="mt-0.5 text-[10px] text-shop-400">
             {mastered}/{total} parts mastered
           </span>
         </div>

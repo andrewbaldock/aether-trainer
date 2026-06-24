@@ -9,6 +9,14 @@
   --color-shop-800: #141925;
   --color-shop-700: #1d2433;
   --color-shop-600: #2b3346;
+  /* Light end of the ramp — used for TEXT. These were missing, so `text-shop-100`
+     silently resolved to nothing and `text-shop-600` (#2b3346, a surface tone) was
+     being used as body text at ~1.7:1 contrast (unreadable). */
+  --color-shop-500: #717c91;
+  --color-shop-400: #9aa4b8;
+  --color-shop-300: #c2cad9;
+  --color-shop-200: #dde2ec;
+  --color-shop-100: #f1f4f9;
   --color-brass-400: #d8a657;
   --color-brass-500: #c08a3e;
   --color-brass-600: #9a6c2e;
