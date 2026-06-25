@@ -9,7 +9,8 @@ from memory.
 
 Built as interview prep: know every station of the machine and what breaks where.
 
-![The Aether Machine — whole machine lit](docs/aether-machine.png)
+<img width="1645" height="1160" alt="image" src="https://github.com/user-attachments/assets/a8e3dae5-9f54-44d9-9f04-b2195d9eb4f7" />
+
 
 ## The machine
 
