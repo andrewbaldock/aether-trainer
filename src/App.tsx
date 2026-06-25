@@ -6,6 +6,7 @@ import { Recall } from "./game/Recall";
 import { Diagnose } from "./game/Diagnose";
 import { Explain } from "./game/Explain";
 import { Watch } from "./game/Watch";
+import { Repair } from "./game/Repair";
 
 export function App() {
   const [mode, setMode] = useState<Mode>("recall");
@@ -28,6 +29,7 @@ export function App() {
             {mode === "diagnose" && <Diagnose />}
             {mode === "explain" && <Explain />}
             {mode === "watch" && <Watch />}
+            {mode === "repair" && <Repair />}
           </main>
         </div>
       </ReactFlowProvider>

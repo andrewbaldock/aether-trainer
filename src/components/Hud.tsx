@@ -2,13 +2,14 @@ import { useProgress } from "../game/useProgress";
 import { GOTCHA_CARDS } from "../data/cards";
 import { isMastered } from "../game/srs";
 
-export type Mode = "recall" | "diagnose" | "explain" | "watch";
+export type Mode = "recall" | "diagnose" | "explain" | "watch" | "repair";
 
 const MODES: { id: Mode; label: string; hint: string }[] = [
   { id: "recall", label: "Recall", hint: "Flashcards + spaced repetition" },
   { id: "diagnose", label: "Diagnose", hint: "Symptom → which station?" },
   { id: "explain", label: "Explain", hint: "Interview simulator" },
   { id: "watch", label: "Watch", hint: "Guided walk-through of a live turn" },
+  { id: "repair", label: "Repair", hint: "Reassemble the machine from memory (CPTRK)" },
 ];
 
 export function Hud({
